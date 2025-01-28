@@ -9,19 +9,20 @@ builder.Services.AddControllers();
 builder.Services
 .AddDbContext<SkinetContext>
 (db => db.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IProductRepository, ProductRepository>();    
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddSwaggerService();
+builder.Services.AddApplicationServices();
 builder.Services.AddAutoMapper(typeof(MappingProfiles));
-var app = builder.Build();
 
+
+
+var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseMiddleware<ExceptionMiddleware>();
 }
-
 // app.UseHttpsRedirection();
-
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -42,20 +43,8 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast");
 app.MapControllers();
 app.UseStaticFiles();
-using (var scope = app.Services.CreateScope()) 
-{
-    var contextService = scope.ServiceProvider.GetService<SkinetContext>();
-    var loggerFactory = scope.ServiceProvider.GetService<ILoggerFactory>();
-    try {
-        await contextService.Database.MigrateAsync();
-        StoreContextSeed.SeedStoreContext(contextService, loggerFactory);
-
-    } catch (Exception ex){
-        var logger = loggerFactory.CreateLogger<Program>();
-        logger.LogError($"An Exception occure while Migration :{ex.Message}");
-    }
-}
-
+await app.MigrateDatabase();
+app.UseSwaggerService();
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

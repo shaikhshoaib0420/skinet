@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-[ApiController]
-[Route("api/[controller]")]
-public class ProductsController: ControllerBase
+
+public class ProductsController: BaseApiController
 {
     private readonly IGenericRepository<Product> _productRepository;
     private readonly IGenericRepository<ProductType> _productTypeRepo;
@@ -45,6 +45,7 @@ public class ProductsController: ControllerBase
     public async Task<ActionResult> GetProductBySpecification(int id) {
         ProductsWithBrandAndTypeSpecification<Product> spec = new ProductsWithBrandAndTypeSpecification<Product>(id);
         var product = await _productRepository.GetProductBySpecification(spec);
+        if (product == null) return NotFound(new ModelError("The given product doesn't found"));
         return Ok(_mapper.Map<ProductResponseDto>(product));
     }
 
