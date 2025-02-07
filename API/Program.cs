@@ -1,9 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddCors(options => {
+    options.AddDefaultPolicy(policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyHeader());
+});
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services
@@ -41,6 +47,7 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+app.UseCors();
 app.MapControllers();
 app.UseStaticFiles();
 await app.MigrateDatabase();

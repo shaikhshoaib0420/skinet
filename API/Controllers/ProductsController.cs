@@ -11,13 +11,17 @@ public class ProductsController: BaseApiController
     private readonly IGenericRepository<Product> _productRepository;
     private readonly IGenericRepository<ProductType> _productTypeRepo;
     private readonly IMapper _mapper;
+    private readonly IGenericRepository<ProductBrand> _productBrandRepo;
 
     public ProductsController(IGenericRepository<Product> productRepository,
-     IGenericRepository<ProductType> productTypeRepo, IMapper mapper)
+     IGenericRepository<ProductType> productTypeRepo, 
+     IMapper mapper,
+     IGenericRepository<ProductBrand> productBrandRepo)
     {
         _productRepository = productRepository;
         _productTypeRepo = productTypeRepo;
         _mapper = mapper;
+        _productBrandRepo = productBrandRepo;
     }
 
     // [HttpGet]
@@ -28,10 +32,17 @@ public class ProductsController: BaseApiController
     // }
 
     [HttpGet]
-    public async Task<IActionResult> GetProductsBySpecification() {
-        ProductsWithBrandAndTypeSpecification<Product> specification = new ProductsWithBrandAndTypeSpecification<Product>();
+    public async Task<List<ProductResponseDto>> GetProductsBySpecification([FromQuery]ProductParams productParams) {
+        ProductsWithBrandAndTypeSpecification<Product> specification = new ProductsWithBrandAndTypeSpecification<Product>(productParams);
         var products = await _productRepository.GetAllBySpecification(specification);
-        return Ok(_mapper.Map<List<ProductResponseDto>>(products));
+        List<ProductResponseDto> productResponseDtos = _mapper.Map<List<ProductResponseDto>>(products);
+        var productToSend = await PagedList<ProductResponseDto>
+            .ToPagedList(productResponseDtos.AsQueryable(), 
+            productParams.PageNumber, productParams.PageSize);
+
+        HttpContext.HttpResoponse(productToSend.PaginationMetaData);
+        return productToSend;
+        // return Ok(_mapper.Map<List<ProductResponseDto>>(products));
 
     }
 
@@ -53,4 +64,9 @@ public class ProductsController: BaseApiController
     public async Task<ActionResult<List<ProductType>>> GetProductType() {
         return Ok(await _productTypeRepo.GetAllAsync());
     } 
+
+    [HttpGet("productBrand")]
+    public async Task<ActionResult> GetProductBrands() {
+        return Ok(await _productBrandRepo.GetAllAsync());   
+    }
 }
